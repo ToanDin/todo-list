@@ -2,10 +2,13 @@ import { Image, StyleSheet, Text, View, Dimensions } from "react-native";
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { LineChart } from "react-native-chart-kit";
-
+import { getAuth } from "firebase/auth"; // Import Firebase Auth
+import { getFirestore, doc, getDoc } from "firebase/firestore"; // Import Firestore
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 const index = () => {
   const [completedTasks, setCompletedTasks] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
+  const [userName, setUserName] = useState(""); // State để lưu tên đăng nhập hoặc email
 
   const fetchTaskData = async () => {
     try {
@@ -17,32 +20,64 @@ const index = () => {
       console.log("error", error);
     }
   };
+
+  const fetchUserData = async () => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (user) {
+        // Lấy email trực tiếp từ đối tượng user nếu bạn không cần Firestore
+        setUserName(user.email);
+
+        // Nếu bạn vẫn muốn lấy từ Firestore
+        const db = getFirestore();
+        const userRef = doc(db, "users", user.uid); // Truy vấn Firestore với uid
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          setUserName(userSnap.data().username); // Lấy username từ Firestore nếu có
+        } else {
+          console.log("No such user document!");
+        }
+      } else {
+        console.log("User is not logged in");
+      }
+    } catch (error) {
+      console.log("Error fetching user data:", error);
+    }
+  };
+
   useEffect(() => {
     fetchTaskData();
+    fetchUserData();
   }, []);
-  console.log("comp", completedTasks);
-  console.log("pending", pendingTasks);
+
   return (
     <View style={{ padding: 10, flex: 1, backgroundColor: "white" }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Image
-          style={{ width: 60, height: 60, borderRadius: 30 }}
-          source={{
-            uri: "https://lh3.googleusercontent.com/ogw/ANLem4Zmk7fohWyH7kB6YArqFy0WMfXnFtuX3PX3LSBf=s64-c-mo",
-          }}
-        />
+      
+      <View style={{ width: 60, height: 60, borderRadius: 30,
+        marginTop:5
+       }}
+         >
+<MaterialCommunityIcons name="account" size={50} color="black" />
+      </View>
+       
         <View>
+          {/* Hiển thị tên đăng nhập hoặc email từ Firebase Auth */}
           <Text style={{ fontSize: 16, fontWeight: "600" }}>
-            Keep plans for 15 days
+            {userName ? ` ${userName}` : "Đang tải..."}
           </Text>
           <Text style={{ fontSize: 15, color: "gray", marginTop: 4 }}>
-            Select Categories
+            Chọn danh mục
           </Text>
         </View>
       </View>
 
+      {/* Phần còn lại của code vẫn giữ nguyên */}
       <View style={{ marginVertical: 12 }}>
-        <Text>Tasks Overview</Text>
+        <Text>Tổng quan công việc</Text>
         <View
           style={{
             flexDirection: "row",
@@ -66,7 +101,7 @@ const index = () => {
             >
               {completedTasks}
             </Text>
-            <Text style={{ marginTop: 4 }}>completed tasks</Text>
+            <Text style={{ marginTop: 4 }}>Công việc đã hoàn thành</Text>
           </View>
 
           <View
@@ -84,7 +119,7 @@ const index = () => {
             >
               {pendingTasks}
             </Text>
-            <Text style={{ marginTop: 4 }}>pending tasks</Text>
+            <Text style={{ marginTop: 4 }}>Công việc đang chờ</Text>
           </View>
         </View>
       </View>
@@ -100,8 +135,6 @@ const index = () => {
         }}
         width={Dimensions.get("window").width - 20} // from react-native
         height={220}
-        // yAxisLabel="$"
-        // yAxisSuffix="k"
         yAxisInterval={2} // optional, defaults to 1
         chartConfig={{
           backgroundColor: "#e26a00",
@@ -134,7 +167,7 @@ const index = () => {
         }}
       >
         <Text style={{ textAlign: "center", color: "white" }}>
-          Tasks for the next seven days
+          Công việc trong 7 ngày tới
         </Text>
       </View>
 
